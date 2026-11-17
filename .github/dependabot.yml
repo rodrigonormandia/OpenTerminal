@@ -1,0 +1,9 @@
+# Keeps the commit-SHA pins in .github/workflows up to date: actions are pinned
+# by full SHA (not by tag) so a moved or hijacked tag can't change what runs
+# with this repository's tokens; Dependabot proposes the bumps as PRs.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
