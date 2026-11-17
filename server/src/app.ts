@@ -6,6 +6,7 @@ import { alertsRouter } from "./alerts.js";
 import { createPaperRouter } from "./paper.js";
 import { portfolioRouter } from "./routes/portfolio.js";
 import { aiRouter } from "./routes/ai.js";
+import { describeProviders } from "./ai/index.js";
 import { allStats } from "./providers/registry.js";
 import { requireApiKey } from "./auth.js";
 import { rateLimit } from "./rateLimit.js";
@@ -41,12 +42,17 @@ export function createApp() {
   // context, see routes/ai.ts); anything bigger is rejected before parsing.
   app.use(express.json({ limit: "64kb" }));
 
-  app.get("/api/status", (_req, res) => {
+  app.get("/api/status", async (_req, res) => {
+    // Which assistant backends are usable (Claude, a local Ollama). This route is
+    // public, so only availability is exposed: the "detail" text can contain the
+    // configured internal Ollama URL and stays behind /api/ai/providers (API key).
+    const aiProviders = (await describeProviders()).map(({ id, label, available }) => ({ id, label, available }));
     res.json({
       ok: true,
       time: new Date().toISOString(),
       providers: allStats(),
-      ai: Boolean(process.env.ANTHROPIC_API_KEY),
+      ai: aiProviders.some((p) => p.available),
+      aiProviders,
     });
   });
 

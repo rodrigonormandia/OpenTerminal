@@ -56,7 +56,7 @@ describe("POST /ai/chat input validation", () => {
   it("forwards a valid chat with a capped max_tokens and the context as fenced data", async () => {
     const res = await chat({ messages: [user("why is AAPL up?")], context: { activeSymbol: "AAPL" } });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ text: "hi" });
+    expect(await res.json()).toMatchObject({ text: "hi", provider: "anthropic" });
     const args = create.mock.calls[0][0];
     expect(args.max_tokens).toBeLessThanOrEqual(4096);
     expect(args.messages).toHaveLength(2);

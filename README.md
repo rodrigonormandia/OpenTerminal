@@ -53,7 +53,7 @@ No signup. No credit card. No rate‑limited demo tier. Clone it, `npm install`,
 - 🏦 **Macro dashboard** — live US Treasury yield curve, VIX, and major index/commodity proxies
 - 💼 **Portfolio tracker** — log buy/sell transactions, track average cost, realized & unrealized P&L (persisted in SQLite)
 - 📅 **Calendar** — economic events (Fed, ECB, CPI, NFP and more) with consensus forecast, previous reading and, for the major US/EU releases, the actual outcome; plus a per‑watchlist earnings calendar with click‑through history showing forecast vs. actual EPS for the last several quarters and the stock's next‑day price move
-- 🤖 **AI assistant** (optional) — ask questions about the symbol you're looking at, powered by Claude, fully context‑aware of the terminal's current data
+- 🤖 **AI assistant** (optional) — ask questions about the symbol you're looking at, powered by Claude, fully context‑aware of the terminal's current data — or run it fully local on an Ollama model, with a picker to switch backend and model on the fly
 - ⚡ **Near real‑time updates** — quotes and indexes refresh every second with a subtle flash on change, so you always know what just moved
 - ⌨️ **Keyboard shortcuts** everywhere — `⌘K` to search, `⌥1`–`⌥9` and `⌥0` (FX) to add any widget
 
@@ -155,6 +155,25 @@ Spend guards for `/api/ai/chat` (all optional):
 
 - `AI_DAILY_TOKEN_LIMIT` — soft daily cap on billed tokens (input + output + cache), counted in memory per UTC day; once reached the endpoint answers `429` until midnight UTC. A restart resets the count, and requests already in flight can overshoot it slightly. Default: unset (no cap).
 - `AI_MAX_TOKENS` — `max_tokens` per reply (default `4096`, clamped to 256–16000). Requests are also capped at 20 turns, 4,000 characters per message, 24,000 per conversation and 8,000 of JSON context; only `user` and `assistant` roles are accepted.
+### Optional: local models with Ollama
+
+The assistant can also talk to a **local Ollama daemon** instead of Claude — no key, no data leaving your machine. The AI widget has a picker for both the backend and the model; Claude stays the default until you switch.
+
+```bash
+# 1. install Ollama and pull a model (https://ollama.com)
+ollama pull qwen3:8b
+
+# 2. point the API at the daemon (the default is http://127.0.0.1:11434)
+export OLLAMA_BASE_URL=http://127.0.0.1:11434
+npm run dev
+```
+
+Then open the AI widget and pick **Ollama (local)** and the model to use. The model list is read live from the daemon, so only the models you have pulled show up.
+
+- `OLLAMA_BASE_URL` — where the Ollama daemon listens (default: `http://127.0.0.1:11434` with `npm run dev`; in Docker it already defaults to `http://host.docker.internal:11434`, i.e. the machine running Docker). To use a daemon on another machine, set `OLLAMA_BASE_URL=http://192.168.1.50:11434` — with Docker Compose, put that line in a `.env` file next to `docker-compose.yml` and `docker compose` picks it up automatically.
+- `OLLAMA_MODEL` — preselect a model in the picker (default: the first model the daemon reports).
+
+The backend is chosen per request by the widget, so you can switch between Claude and a local model without restarting anything. The browser never talks to Ollama directly — the API server does, and it never accepts a client-supplied URL.
 
 ### Security defaults
 
@@ -176,6 +195,13 @@ docker compose up --build
 
 Portfolio data persists in the `terminal-data` volume (SQLite, WAL mode). Ports are published on `127.0.0.1` only by default; see [Security defaults](#security-defaults) to expose it deliberately.
 
+The `api` container reaches an Ollama running on your machine through `http://host.docker.internal:11434`, which is already its default, so a local model works out of the box. To point it at a daemon somewhere else, drop a `.env` file next to `docker-compose.yml` — `docker compose` reads it automatically:
+
+```bash
+# .env
+OLLAMA_BASE_URL=http://192.168.1.50:11434
+```
+
 <br/>
 
 ## 🧱 Tech stack
@@ -186,7 +212,7 @@ Portfolio data persists in the `terminal-data` volume (SQLite, WAL mode). Ports 
 | Charts | `lightweight-charts` (candles/indicators) · D3 (heatmap treemap) · Recharts (yield curve) |
 | Backend | Node.js · Express · TypeScript |
 | Database | SQLite (`better-sqlite3`, WAL mode) |
-| AI | Anthropic Claude (optional) |
+| AI | Anthropic Claude (default) · Ollama local models (optional) |
 
 <br/>
 
@@ -197,6 +223,7 @@ Portfolio data persists in the `terminal-data` volume (SQLite, WAL mode). Ports 
 │   └── src/
 │       ├── providers/       # nasdaq, tradingview, yahoo, stooq, fred, econcalendar, coingecko, binance, currencyapi, clindicators, news
 │       ├── routes/          # market, portfolio, ai
+│       ├── ai/              # assistant backends: anthropic (Claude), ollama (local)
 │       ├── cache.ts         # TTL cache with stale-while-revalidate fallback
 │       └── db.ts            # SQLite (better-sqlite3, WAL)
 └── web/                      # Next.js 15 + React 19 + Tailwind 4

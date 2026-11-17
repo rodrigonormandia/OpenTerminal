@@ -35,6 +35,9 @@ export type WidgetInstance = {
 
 export type LayoutItem = { i: string; x: number; y: number; w: number; h: number };
 
+/** Which assistant backend the AI widget talks to. Claude is the default. */
+export type AiProviderId = "anthropic" | "ollama";
+
 type TerminalState = {
   activeSymbol: string;
   widgets: WidgetInstance[];
@@ -48,6 +51,8 @@ type TerminalState = {
   /** Beginner tooltips on terminal labels (TopBar LEARN toggle). */
   learnMode: boolean;
   toggleLearnMode: () => void;
+  aiProvider: AiProviderId;
+  aiModel: string;
   setActiveSymbol: (s: string) => void;
   setCommandOpen: (open: boolean) => void;
   addWidget: (type: WidgetType, symbol?: string) => void;
@@ -65,6 +70,8 @@ type TerminalState = {
   removeFxPair: (s: string) => void;
   resetFxPairs: () => void;
   resetWorkspace: () => void;
+  setAiProvider: (p: AiProviderId) => void;
+  setAiModel: (m: string) => void;
 };
 
 export type WatchlistGroup = { name: string; symbols: string[] };
@@ -151,6 +158,8 @@ export const useTerminal = create<TerminalState>()(
       commandOpen: false,
       learnMode: true,
       toggleLearnMode: () => set((st) => ({ learnMode: !st.learnMode })),
+      aiProvider: "anthropic",
+      aiModel: "",
       setActiveSymbol: (s) => {
         const sym = normalizeSymbol(s);
         if (sym) set({ activeSymbol: sym });
@@ -221,6 +230,8 @@ export const useTerminal = create<TerminalState>()(
       removeFxPair: (s) => set((st) => ({ fxPairs: st.fxPairs.filter((x) => x !== s) })),
       resetFxPairs: () => set({ fxPairs: DEFAULT_FX_PAIRS }),
       resetWorkspace: () => set({ widgets: DEFAULT_WIDGETS, layout: DEFAULT_LAYOUT }),
+      setAiProvider: (p) => set({ aiProvider: p }),
+      setAiModel: (m) => set({ aiModel: m }),
     }),
     {
       name: "openterminal-workspace",
