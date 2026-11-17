@@ -1,6 +1,11 @@
 <div align="center">
 
-# OpenTerminal
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-dark.svg">
+    <img src="docs/brand/logo.svg" alt="OpenTerminal" height="64">
+  </picture>
+</h1>
 
 **A Terminal‑style workspace for the rest of us — built entirely on free, public market data.**
 
@@ -145,16 +150,17 @@ Two optional knobs for the assistant, both standard for the Anthropic SDK:
 Spend guards for `/api/ai/chat` (all optional):
 
 - `AI_DAILY_TOKEN_LIMIT` — soft daily cap on billed tokens (input + output + cache), counted in memory per UTC day; once reached the endpoint answers `429` until midnight UTC. A restart resets the count, and requests already in flight can overshoot it slightly. Default: unset (no cap).
-- `AI_MAX_TOKENS` — `max_tokens` per reply (default: `16000`).
-- `AI_MAX_MESSAGES` / `AI_MAX_MESSAGE_CHARS` — max messages per request and characters per message (defaults: `40` / `8000`). Only `user` and `assistant` roles are accepted.
-- `AI_MAX_CONTEXT_CHARS` — max size of the JSON `context` sent with a question (default: `20000`; larger requests get `413`).
+- `AI_MAX_TOKENS` — `max_tokens` per reply (default `4096`, clamped to 256–16000). Requests are also capped at 20 turns, 4,000 characters per message, 24,000 per conversation and 8,000 of JSON context; only `user` and `assistant` roles are accepted.
 
 ### Security defaults
 
 - The API binds to `127.0.0.1` and only accepts browser requests from `http://localhost:3000` by default — nothing else on your network can reach it out of the box.
 - The portfolio and AI endpoints require a shared secret. If you don't set `API_KEY` yourself, the API generates one on first run and saves it to `data/.api-key`; the bundled web app reads that file automatically, so local dev stays zero-config.
-- To expose this beyond your own machine, set `API_HOST=0.0.0.0`, `API_KEY=<a-strong-secret>` (on both the api and web processes), and `WEB_ORIGIN=<your actual origin>` explicitly. Don't do this without also keeping dependencies patched — see [Known limitations](#known-limitations) below.
+- The bundled web app attaches that secret to every request it forwards, so the web port is the real front door. By default it only answers requests whose `Host` is `localhost`/`127.0.0.1` (blocking DNS-rebinding attacks) and refuses cross-site writes.
+- To expose this beyond your own machine, set on the **web** process `PUBLIC_ORIGIN=<https://your.host>` and `WEB_ACCESS_TOKEN=<32+ char secret>` (users sign in once at `/access`; the token becomes an HttpOnly cookie). Without a token the proxy refuses API calls on a public origin. On the **api** process set `API_HOST=0.0.0.0`, `API_KEY=<32+ char secret>` (also on web), and `WEB_ORIGIN`. Terminate TLS in front. Don't do this without also keeping dependencies patched — see Known limitations below.
+- `API_KEY` and `WEB_ACCESS_TOKEN` must be at least 32 characters; the API refuses to start with a shorter (or empty) key.
 - The `/api/ai` rate limit (10 req/min) keys on `req.ip`. Calls made through the bundled web proxy all arrive from that proxy's own address, so by default every caller sharing it shares one bucket. If you're serving more than one real user through it, set `TRUST_PROXY=1` on the api process **only if** you also run your own reverse proxy in front of the web service that sets `X-Forwarded-For` from the real client and doesn't let visitors set it themselves — otherwise a caller can forge that header to dodge the limit.
+- Rate limits are configurable: `MARKET_RATE_LIMIT_PER_MIN` (default 600, market data) and `AI_RATE_LIMIT_PER_MIN` (default 10). `AI_MAX_TOKENS` caps each assistant reply (default 4096).
 
 <br/>
 
