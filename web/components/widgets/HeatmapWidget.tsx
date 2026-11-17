@@ -15,7 +15,7 @@ type Cell = { symbol: string; name: string | null; sector: string; marketCap: nu
 const LAYOUT_TTL_MS = 5 * 60_000;
 
 type LayoutSnapshot = {
-  market: "us" | "eu";
+  market: "us" | "eu" | "br";
   takenAt: number;
   caps: Map<string, number>; // symbol -> market cap used for tile size
   cells: Map<string, Cell>; // symbol -> latest data seen for that tile

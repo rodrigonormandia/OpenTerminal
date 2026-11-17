@@ -126,6 +126,8 @@ describe("GET /earnings-history/:symbol", () => {
       expect.objectContaining({ dayAfterChangePercent: 10 }),
       expect.objectContaining({ dayAfterChangePercent: null }),
     ]);
+  });
+});
 
 describe("GET /news", () => {
   const rss = (title: string) =>
