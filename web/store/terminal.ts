@@ -23,7 +23,8 @@ export type WidgetType =
   | "alerts"
   | "sectors"
   | "paper"
-  | "replay";
+  | "replay"
+  | "fx";
 
 export type WidgetInstance = {
   id: string;
@@ -42,6 +43,7 @@ type TerminalState = {
   watchlist: string[];
   watchlists: WatchlistGroup[];
   activeWatchlist: number;
+  fxPairs: string[];
   commandOpen: boolean;
   /** Beginner tooltips on terminal labels (TopBar LEARN toggle). */
   learnMode: boolean;
@@ -59,6 +61,9 @@ type TerminalState = {
   addWatchlistGroup: (name: string) => void;
   renameWatchlistGroup: (index: number, name: string) => void;
   removeWatchlistGroup: (index: number) => void;
+  addFxPair: (s: string) => void;
+  removeFxPair: (s: string) => void;
+  resetFxPairs: () => void;
   resetWorkspace: () => void;
 };
 
@@ -87,6 +92,12 @@ function updateActive(st: TerminalState, fn: (symbols: string[]) => string[]) {
   const watchlists = st.watchlists.map((g, i) => (i === st.activeWatchlist ? { ...g, symbols: fn(g.symbols) } : g));
   return { watchlists, watchlist: watchlists[st.activeWatchlist]?.symbols ?? [] };
 }
+
+// Mirrors DEFAULT_FX_SYMBOLS on the server (server/src/fx.ts).
+const DEFAULT_FX_PAIRS = [
+  "USDCLP=X", "EURCLP=X", "EURUSD=X", "USDCNY=X", "USDCNH=X",
+  "USDMXN=X", "USDCOP=X", "USDPEN=X", "USDARS=X",
+];
 
 const DEFAULT_WIDGETS: WidgetInstance[] = [
   { id: "w-chart", type: "chart", linked: true },
@@ -124,6 +135,7 @@ const SIZE_BY_TYPE: Record<WidgetType, { w: number; h: number }> = {
   sectors: { w: 7, h: 9 },
   paper: { w: 8, h: 12 },
   replay: { w: 8, h: 12 },
+  fx: { w: 6, h: 8 },
 };
 
 export const useTerminal = create<TerminalState>()(
@@ -135,6 +147,7 @@ export const useTerminal = create<TerminalState>()(
       watchlist: DEFAULT_WATCHLIST,
       watchlists: [{ name: "Main", symbols: DEFAULT_WATCHLIST }],
       activeWatchlist: 0,
+      fxPairs: DEFAULT_FX_PAIRS,
       commandOpen: false,
       learnMode: true,
       toggleLearnMode: () => set((st) => ({ learnMode: !st.learnMode })),
@@ -203,6 +216,10 @@ export const useTerminal = create<TerminalState>()(
           const activeWatchlist = Math.min(st.activeWatchlist >= index && st.activeWatchlist > 0 ? st.activeWatchlist - 1 : st.activeWatchlist, watchlists.length - 1);
           return { watchlists, activeWatchlist, watchlist: watchlists[activeWatchlist].symbols };
         }),
+      addFxPair: (s) =>
+        set((st) => ({ fxPairs: st.fxPairs.includes(s) ? st.fxPairs : [...st.fxPairs, s] })),
+      removeFxPair: (s) => set((st) => ({ fxPairs: st.fxPairs.filter((x) => x !== s) })),
+      resetFxPairs: () => set({ fxPairs: DEFAULT_FX_PAIRS }),
       resetWorkspace: () => set({ widgets: DEFAULT_WIDGETS, layout: DEFAULT_LAYOUT }),
     }),
     {

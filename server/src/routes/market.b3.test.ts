@@ -148,8 +148,10 @@ describe("Brazil macro and market scans", () => {
     const { status, body } = await call("/macro", { query: { region: "br" } });
     expect(status).toBe(200);
     expect(body).toMatchObject({ yields: [], vix: null, policyRate: 13.75, inflation: 4.63 });
+    // FX pairs may be served by a different provider (TradingView's forex scan
+    // when present), so only the B3 rows are pinned here.
     expect(body.indexes.map((i: any) => i.label)).toEqual(
-      expect.arrayContaining(["Ibovespa", "USD/BRL", "EUR/BRL", "IFIX (real estate funds)", "Small Caps (SMAL11)"])
+      expect.arrayContaining(["Ibovespa", "IFIX (real estate funds)", "Small Caps (SMAL11)"])
     );
   });
 
